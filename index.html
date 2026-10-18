@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎋 抽签 - Saihou</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a0a2e, #2d1b69, #1a0a2e);
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+
+        .container {
+            text-align: center;
+            z-index: 1;
+            position: relative;
+        }
+
+        h1 {
+            color: #ffd700;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            letter-spacing: 8px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1em;
+            margin-bottom: 40px;
+            letter-spacing: 3px;
+        }
+
+        /* Fortune stick container */
+        .stick-container {
+            width: 180px;
+            height: 280px;
+            margin: 0 auto 40px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .tube {
+            width: 120px;
+            height: 200px;
+            background: linear-gradient(145deg, #8B4513, #A0522D, #8B4513);
+            border-radius: 0 0 60px 60px;
+            margin: 80px auto 0;
+            position: relative;
+            border: 3px solid #DAA520;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 -20px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .tube::before {
+            content: '签';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #DAA520;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stick {
+            width: 8px;
+            height: 120px;
+            background: linear-gradient(to right, #DEB887, #F5DEB3, #DEB887);
+            position: absolute;
+            bottom: 140px;
+            border-radius: 4px 4px 0 0;
+            transition: transform 0.3s ease;
+            transform-origin: bottom center;
+        }
+
+        .stick:nth-child(1) { left: 45px; transform: rotate(-15deg); }
+        .stick:nth-child(2) { left: 55px; transform: rotate(-5deg); }
+        .stick:nth-child(3) { left: 65px; transform: rotate(5deg); }
+        .stick:nth-child(4) { left: 75px; transform: rotate(10deg); }
+        .stick:nth-child(5) { left: 50px; transform: rotate(-10deg); }
+
+        .stick-container:hover .stick {
+            animation: shake 0.3s ease infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(var(--base-rotate, 0deg)); }
+            25% { transform: rotate(calc(var(--base-rotate, 0deg) - 5deg)); }
+            75% { transform: rotate(calc(var(--base-rotate, 0deg) + 5deg)); }
+        }
+
+        .stick-container:hover .stick:nth-child(1) { --base-rotate: -15deg; }
+        .stick-container:hover .stick:nth-child(2) { --base-rotate: -5deg; }
+        .stick-container:hover .stick:nth-child(3) { --base-rotate: 5deg; }
+        .stick-container:hover .stick:nth-child(4) { --base-rotate: 10deg; }
+        .stick-container:hover .stick:nth-child(5) { --base-rotate: -10deg; }
+
+        .draw-btn {
+            background: linear-gradient(145deg, #DAA520, #FFD700, #DAA520);
+            color: #4a2000;
+            border: none;
+            padding: 16px 50px;
+            font-size: 1.4em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            letter-spacing: 5px;
+            box-shadow: 0 5px 25px rgba(218, 165, 32, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .draw-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 35px rgba(218, 165, 32, 0.6);
+        }
+
+        .draw-btn:active {
+            transform: translateY(0);
+        }
+
+        .draw-btn.shaking {
+            animation: btnShake 0.1s ease infinite;
+        }
+
+        @keyframes btnShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            75% { transform: translateX(5px) rotate(2deg); }
+        }
+
+        /* Result overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .result-card {
+            background: linear-gradient(145deg, #2a1a0a, #3d2b1a, #2a1a0a);
+            border: 3px solid #DAA520;
+            border-radius: 20px;
+            padding: 50px 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            animation: cardDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 60px rgba(218, 165, 32, 0.3);
+        }
+
+        @keyframes cardDrop {
+            from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            to { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .result-card .fortune-type {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px currentColor;
+        }
+
+        .result-card .fortune-label {
+            font-size: 1.2em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+        }
+
+        .result-card .fortune-text {
+            color: #F5DEB3;
+            font-size: 1.1em;
+            line-height: 2;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-top: 1px solid rgba(218, 165, 32, 0.3);
+            border-bottom: 1px solid rgba(218, 165, 32, 0.3);
+        }
+
+        .result-card .fortune-advice {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9em;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+
+        .close-btn {
+            background: transparent;
+            color: #DAA520;
+            border: 2px solid #DAA520;
+            padding: 12px 40px;
+            font-size: 1em;
+            border-radius: 30px;
+            cursor: pointer;
+            letter-spacing: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #DAA520;
+            color: #2a1a0a;
+        }
+
+        .corner-decor {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #DAA520;
+            border-style: solid;
+        }
+
+        .corner-decor.tl { top: 10px; left: 10px; border-width: 3px 0 0 3px; border-radius: 10px 0 0 0; }
+        .corner-decor.tr { top: 10px; right: 10px; border-width: 3px 3px 0 0; border-radius: 0 10px 0 0; }
+        .corner-decor.bl { bottom: 10px; left: 10px; border-width: 0 0 3px 3px; border-radius: 0 0 0 10px; }
+        .corner-decor.br { bottom: 10px; right: 10px; border-width: 0 3px 3px 0; border-radius: 0 0 10px 0; }
+
+        .history {
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85em;
+        }
+
+        .history span {
+            margin: 0 5px;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <h1>🎋 抽签</h1>
+        <p class="subtitle">诚心诚意，摇出你的运势</p>
+
+        <div class="stick-container" onclick="drawFortune()">
+            <div class="stick"></div>
+            <div class="stick"></div>
+            <div class="stick"></div>
+            <div class="stick"></div>
+            <div class="stick"></div>
+            <div class="tube"></div>
+        </div>
+
+        <button class="draw-btn" onclick="drawFortune()">🙏 求签</button>
+
+        <div class="history" id="history"></div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeResult(event)">
+        <div class="result-card" id="resultCard">
+            <div class="corner-decor tl"></div>
+            <div class="corner-decor tr"></div>
+            <div class="corner-decor bl"></div>
+            <div class="corner-decor br"></div>
+            <div class="fortune-type" id="fortuneType"></div>
+            <div class="fortune-label" id="fortuneLabel"></div>
+            <div class="fortune-text" id="fortuneText"></div>
+            <div class="fortune-advice" id="fortuneAdvice"></div>
+            <button class="close-btn" onclick="closeOverlay()">再来一签</button>
+        </div>
+    </div>
+
+    <script>
+        const fortunes = [
+            {
+                type: '大吉',
+                color: '#ff3333',
+                label: '🌟 上上签',
+                texts: [
+                    '鹏程万里随风起，好运连连不可挡。',
+                    '春风得意马蹄疾，万事如意皆可期。',
+                    '金榜题名日，锦绣前程时。',
+                    '紫气东来福满门，贵人相助事事顺。'
+                ],
+                advices: [
+                    '大胆去做你想做的事吧！',
+                    '此时行动，必有所成！',
+                    '好运正在向你靠近！'
+                ]
+            },
+            {
+                type: '中吉',
+                color: '#ff6633',
+                label: '✨ 上签',
+                texts: [
+                    '风调雨顺丰年景，稳步前行有所成。',
+                    '云开见月明，柳暗花明又一村。',
+                    '守得云开见月明，前路光明可期待。',
+                    '耕耘有收获，付出见回报。'
+                ],
+                advices: [
+                    '保持努力，好事将至。',
+                    '稳扎稳打，步步高升。',
+                    '心态放平，好运自来。'
+                ]
+            },
+            {
+                type: '小吉',
+                color: '#ffaa33',
+                label: '🌸 中上签',
+                texts: [
+                    '小荷才露尖尖角，好运初现渐入佳。',
+                    '细水长流终汇海，小事积累成大成。',
+                    '春雨润物细无声，默默耕耘终有果。',
+                    '一步一脚印，踏实向前行。'
+                ],
+                advices: [
+                    '不急不躁，慢慢来。',
+                    '小确幸也是幸福。',
+                    '耐心等待花开时。'
+                ]
+            },
+            {
+                type: '吉',
+                color: '#33cc66',
+                label: '🍀 中签',
+                texts: [
+                    '平安是福人间乐，知足常乐心自宽。',
+                    '山重水复疑无路，柳暗花明又一村。',
+                    '随遇而安心自在，顺其自然福自来。',
+                    '平平淡淡才是真，简简单单即为福。'
+                ],
+                advices: [
+                    '平常心对待一切。',
+                    '珍惜眼前的美好。',
+                    '知足者常乐。'
+                ]
+            },
+            {
+                type: '末吉',
+                color: '#66aacc',
+                label: '🌙 中下签',
+                texts: [
+                    '乌云遮月暂时阴，拨云见日终有时。',
+                    '逆水行舟需努力，风雨过后见彩虹。',
+                    '暗夜将尽晨光现，坚持到底方为赢。',
+                    '冬去春来万物生，耐心等待好时机。'
+                ],
+                advices: [
+                    '不要灰心，转机将至。',
+                    '困难是暂时的，坚持住。',
+                    '低谷之后便是上坡。'
+                ]
+            },
+            {
+                type: '凶',
+                color: '#9966cc',
+                label: '⚡ 下签',
+                texts: [
+                    '山路崎岖需谨慎，三思后行保平安。',
+                    '风高浪急宜收帆，退一步海阔天空。',
+                    '急流勇退是智慧，留得青山有柴烧。',
+                    '事缓则圆莫着急，以退为进方为上。'
+                ],
+                advices: [
+                    '近期宜静不宜动。',
+                    '多听多看少冲动。',
+                    '谨慎行事，避免风险。'
+                ]
+            },
+            {
+                type: '大凶',
+                color: '#666699',
+                label: '💫 下下签',
+                texts: [
+                    '否极泰来终有日，黑暗之后是黎明。',
+                    '置之死地而后生，绝处逢生是转机。',
+                    '风雨同舟共患难，守得初心方始终。',
+                    '最深的夜，预示最美的日出。'
+                ],
+                advices: [
+                    '物极必反，坏到极致便是转运之时！',
+                    '沉住气，大运气在后面等你。',
+                    '别怕，这是黎明前的黑暗。'
+                ]
+            }
+        ];
+
+        // Weighted random: more likely to get good fortune
+        const weights = [20, 25, 20, 15, 10, 7, 3];
+        let history = [];
+
+        function weightedRandom() {
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < weights.length; i++) {
+                random -= weights[i];
+                if (random <= 0) return i;
+            }
+            return 0;
+        }
+
+        function randomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function drawFortune() {
+            const btn = document.querySelector('.draw-btn');
+            btn.classList.add('shaking');
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btn.classList.remove('shaking');
+                btn.disabled = false;
+
+                const index = weightedRandom();
+                const fortune = fortunes[index];
+
+                document.getElementById('fortuneType').textContent = fortune.type;
+                document.getElementById('fortuneType').style.color = fortune.color;
+                document.getElementById('fortuneLabel').textContent = fortune.label;
+                document.getElementById('fortuneText').textContent = randomItem(fortune.texts);
+                document.getElementById('fortuneAdvice').textContent = '💡 ' + randomItem(fortune.advices);
+
+                document.getElementById('overlay').classList.add('show');
+
+                // Add to history
+                history.unshift(fortune.type);
+                if (history.length > 8) history.pop();
+                updateHistory();
+            }, 1200);
+        }
+
+        function closeResult(event) {
+            if (event.target === document.getElementById('overlay')) {
+                closeOverlay();
+            }
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        function updateHistory() {
+            const el = document.getElementById('history');
+            if (history.length === 0) return;
+            el.innerHTML = '抽签记录：' + history.map(h => `<span>${h}</span>`).join('');
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                const size = Math.random() * 6 + 2;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (Math.random() * 10 + 8) + 's';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                container.appendChild(p);
+            }
+        }
+
+        createParticles();
+    </script>
+</body>
+</html>
